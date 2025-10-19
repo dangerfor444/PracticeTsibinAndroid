@@ -10,6 +10,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.practicetsibin.feature.details.MovieDetailsViewModel
 import com.example.practicetsibin.feature.list.MovieListViewModel
 import com.example.practicetsibin.navigation.Routes
 import com.example.practicetsibin.ui.components.BottomBar
@@ -39,12 +40,17 @@ fun MainScreen() {
             composable(Routes.LIST) {
                 val viewModel: MovieListViewModel = viewModel()
                 val movies by viewModel.movies.collectAsState()
+                val isLoading by viewModel.isLoading.collectAsState()
+                val error by viewModel.error.collectAsState()
                 
                 MovieListScreen(
                     movies = movies,
+                    isLoading = isLoading,
+                    error = error,
                     onMovieClick = { movieId ->
                         navController.navigate(Routes.details(movieId))
-                    }
+                    },
+                    onRetry = { viewModel.retry() }
                 )
             }
             composable(Routes.PROFILE) {
@@ -52,12 +58,26 @@ fun MainScreen() {
             }
             composable(Routes.DETAILS) { backStackEntry ->
                 val movieId = backStackEntry.arguments?.getString("movieId") ?: return@composable
-                val viewModel: MovieListViewModel = viewModel()
-                val movie = viewModel.getMovieById(movieId)
+                val viewModel: MovieDetailsViewModel = viewModel()
+                val movie by viewModel.movie.collectAsState()
+                val isLoading by viewModel.isLoading.collectAsState()
+                val error by viewModel.error.collectAsState()
+                
+                androidx.compose.runtime.LaunchedEffect(movieId) {
+                    viewModel.loadMovieDetails(movieId)
+                }
+                
                 if (movie != null) {
-                    MovieDetailsScreen(movie = movie, onBack = { navController.navigateUp() })
+                    MovieDetailsScreen(
+                        movie = movie!!,
+                        onBack = { navController.navigateUp() }
+                    )
+                } else if (isLoading) {
+                    PlaceholderScreen(title = "Загрузка...")
+                } else if (error != null) {
+                    PlaceholderScreen(title = "Ошибка: $error")
                 } else {
-                    PlaceholderScreen(title = "Not Found")
+                    PlaceholderScreen(title = "Фильм не найден")
                 }
             }
         }
