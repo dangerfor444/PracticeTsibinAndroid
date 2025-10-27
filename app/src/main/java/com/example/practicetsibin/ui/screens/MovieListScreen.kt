@@ -4,18 +4,26 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,7 +40,9 @@ fun MovieListScreen(
     isLoading: Boolean,
     error: String?,
     onMovieClick: (String) -> Unit,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    onFilterClick: () -> Unit,
+    hasActiveFilters: Boolean = false
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         if (isLoading && movies.isEmpty()) {
@@ -77,6 +87,26 @@ fun MovieListScreen(
                         ) {
                             CircularProgressIndicator()
                         }
+                    }
+                }
+            }
+            
+            FloatingActionButton(
+                onClick = onFilterClick,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+            ) {
+                Box {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Фильтры"
+                    )
+                    
+                    if (hasActiveFilters) {
+                        Badge(
+                            modifier = Modifier.offset(x = 8.dp, y = (-4).dp)
+                        )
                     }
                 }
             }
