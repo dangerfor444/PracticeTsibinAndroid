@@ -2,20 +2,35 @@ package com.example.practicetsibin.feature.list
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.practicetsibin.data.FilterSettings
 import com.example.practicetsibin.data.Movie
 import com.example.practicetsibin.di.DIContainer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class MovieListViewModel : ViewModel() {
 
     private val getPopularMoviesUseCase = DIContainer.getPopularMoviesUseCase
     private val searchMoviesUseCase = DIContainer.searchMoviesUseCase
+    private val filterSettingsRepository = DIContainer.filterSettingsRepositoryInstance
 
-    private val _movies = MutableStateFlow<List<Movie>>(emptyList())
-    val movies: StateFlow<List<Movie>> = _movies.asStateFlow()
+    private val _allMovies = MutableStateFlow<List<Movie>>(emptyList())
+    private val _filterSettings = MutableStateFlow(FilterSettings())
+    
+    val movies: StateFlow<List<Movie>> = combine(
+        _allMovies,
+        _filterSettings
+    ) { allMovies, filters ->
+        applyFilters(allMovies, filters)
+    }.stateIn(
+        scope = viewModelScope,
+        started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
     
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -31,6 +46,34 @@ class MovieListViewModel : ViewModel() {
 
     init {
         loadPopularMovies()
+        loadFilterSettings()
+    }
+    
+    private fun loadFilterSettings() {
+        viewModelScope.launch {
+            filterSettingsRepository.filterSettings.collect { settings ->
+                _filterSettings.value = settings
+            }
+        }
+    }
+    
+    private fun applyFilters(movies: List<Movie>, filters: FilterSettings): List<Movie> {
+        return movies.filter { movie ->
+            val titleMatch = filters.titleQuery.isEmpty() ||
+                movie.title.contains(filters.titleQuery, ignoreCase = true)
+            
+            val genreMatch = filters.genres.isEmpty() ||
+                filters.genres.any { selectedGenre ->
+                    movie.genres.any { movieGenre ->
+                        movieGenre.equals(selectedGenre, ignoreCase = true)
+                    }
+                }
+            
+            val ratingMatch = movie.rating >= filters.minRating
+            val yearMatch = movie.year >= filters.minYear && movie.year <= filters.maxYear
+            
+            titleMatch && genreMatch && ratingMatch && yearMatch
+        }
     }
 
     fun loadPopularMovies() {
@@ -44,7 +87,7 @@ class MovieListViewModel : ViewModel() {
                 val result = getPopularMoviesUseCase(1)
                 result.fold(
                     onSuccess = { movies ->
-                        _movies.value = movies
+                        _allMovies.value = movies
                     },
                     onFailure = { exception ->
                         _error.value = "Ошибка загрузки фильмов: ${exception.message}"
@@ -72,7 +115,7 @@ class MovieListViewModel : ViewModel() {
                 val result = searchMoviesUseCase(query, 1)
                 result.fold(
                     onSuccess = { movies ->
-                        _movies.value = movies
+                        _allMovies.value = movies
                     },
                     onFailure = { exception ->
                         _error.value = "Ошибка поиска: ${exception.message}"
@@ -101,7 +144,7 @@ class MovieListViewModel : ViewModel() {
                 
                 result.fold(
                     onSuccess = { newMovies ->
-                        _movies.value = _movies.value + newMovies
+                        _allMovies.value = _allMovies.value + newMovies
                         _currentPage.value = nextPage
                     },
                     onFailure = { exception ->
