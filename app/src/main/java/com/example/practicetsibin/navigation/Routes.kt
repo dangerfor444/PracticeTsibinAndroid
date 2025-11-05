@@ -4,6 +4,7 @@ object Routes {
     const val LIST = "list"
     const val DETAILS = "details/{movieId}"
     const val PROFILE = "profile"
+    const val EDIT_PROFILE = "edit_profile"
     const val FILTER_SETTINGS = "filter_settings"
     const val FAVORITES = "favorites"
     
