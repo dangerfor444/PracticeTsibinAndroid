@@ -16,6 +16,9 @@ import com.example.practicetsibin.domain.usecase.GetPopularMoviesUseCase
 import com.example.practicetsibin.domain.usecase.IsFavoriteUseCase
 import com.example.practicetsibin.domain.usecase.RemoveFromFavoritesUseCase
 import com.example.practicetsibin.domain.usecase.SearchMoviesUseCase
+import com.example.practicetsibin.data.profile.ProfileRepository
+import com.example.practicetsibin.domain.usecase.ObserveProfileUseCase
+import com.example.practicetsibin.domain.usecase.UpdateProfileUseCase
 
 object DIContainer {
     
@@ -28,6 +31,7 @@ object DIContainer {
     private val imdbRepository by lazy { ImdbMovieRepository() }
     private val filterSettingsRepository by lazy { FilterSettingsRepository(context!!) }
     private val movieDatabase by lazy { MovieDatabase.getDatabase(context!!) }
+    private val profileRepository by lazy { ProfileRepository(context!!) }
     private val favoriteMovieRepository by lazy { FavoriteMovieRepository(movieDatabase.favoriteMovieDao()) }
     
     val badgeCache = BadgeCache()
@@ -43,4 +47,7 @@ object DIContainer {
     val addToFavoritesUseCase by lazy { AddToFavoritesUseCase(favoriteMovieRepository) }
     val removeFromFavoritesUseCase by lazy { RemoveFromFavoritesUseCase(favoriteMovieRepository) }
     val clearAllFavoritesUseCase by lazy { ClearAllFavoritesUseCase(favoriteMovieRepository) }
+
+    val observeProfileUseCase by lazy { ObserveProfileUseCase(profileRepository) }
+    val updateProfileUseCase by lazy { UpdateProfileUseCase(profileRepository) }
 }
