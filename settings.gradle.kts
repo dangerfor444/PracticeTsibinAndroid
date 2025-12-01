@@ -21,3 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "PracticeTsibin"
 include(":app")
+include(":profile")

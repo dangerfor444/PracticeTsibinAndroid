@@ -1,4 +1,4 @@
-package com.example.practicetsibin.data.profile
+package com.example.practicetsibin.profile.data
 
 import android.content.Context
 import androidx.datastore.core.DataStore
@@ -39,3 +39,4 @@ class ProfileRepository(private val context: Context) {
         }
     }
 }
+

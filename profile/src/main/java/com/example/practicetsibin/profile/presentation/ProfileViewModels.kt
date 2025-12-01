@@ -1,11 +1,12 @@
-package com.example.practicetsibin.feature.profile
+package com.example.practicetsibin.profile.presentation
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.practicetsibin.data.profile.Profile
-import com.example.practicetsibin.di.DIContainer
-import com.example.practicetsibin.notification.AlarmScheduler
+import com.example.practicetsibin.profile.data.Profile
+import com.example.practicetsibin.profile.domain.ObserveProfileUseCase
+import com.example.practicetsibin.profile.domain.UpdateProfileUseCase
+import com.example.practicetsibin.profile.notification.AlarmScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,17 +14,22 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
-class ProfileViewModel : ViewModel() {
+class ProfileViewModel(
+    private val observeProfileUseCase: ObserveProfileUseCase
+) : ViewModel() {
 
     private val _profile = MutableStateFlow(Profile())
     val profile: StateFlow<Profile> = _profile.asStateFlow()
 
     init {
-        DIContainer.observeProfileUseCase().onEach { _profile.value = it }.launchIn(viewModelScope)
+        observeProfileUseCase().onEach { _profile.value = it }.launchIn(viewModelScope)
     }
 }
 
-class EditProfileViewModel : ViewModel() {
+class EditProfileViewModel(
+    private val updateProfileUseCase: UpdateProfileUseCase,
+    private val reminderReceiverClass: Class<*>
+) : ViewModel() {
 
     private val _fullName = MutableStateFlow("")
     val fullName: StateFlow<String> = _fullName.asStateFlow()
@@ -75,16 +81,23 @@ class EditProfileViewModel : ViewModel() {
                 avatarUri = _avatarUri.value,
                 reminderTime = _reminderTime.value
             )
-            DIContainer.updateProfileUseCase(profile)
+            updateProfileUseCase(profile)
 
             if (_reminderTime.value.isNotEmpty()) {
                 val timeParts = _reminderTime.value.split(":")
                 val hour = timeParts[0].toInt()
                 val minute = timeParts[1].toInt()
-                AlarmScheduler.scheduleReminder(context, hour, minute, _fullName.value)
+                AlarmScheduler.scheduleReminder(
+                    context,
+                    hour,
+                    minute,
+                    _fullName.value,
+                    reminderReceiverClass
+                )
             }
 
             onDone()
         }
     }
 }
+

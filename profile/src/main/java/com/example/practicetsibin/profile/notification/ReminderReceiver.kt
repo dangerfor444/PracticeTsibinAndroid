@@ -1,4 +1,4 @@
-package com.example.practicetsibin.notification
+package com.example.practicetsibin.profile.notification
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -8,17 +8,19 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
-import com.example.practicetsibin.MainActivity
-import com.example.practicetsibin.R
 
-class ReminderReceiver : BroadcastReceiver() {
+abstract class ReminderReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         val userName = intent.getStringExtra(EXTRA_USER_NAME) ?: "Студент"
-        showNotification(context, userName)
+        val mainActivityClass = getMainActivityClass()
+        showNotification(context, userName, mainActivityClass)
     }
 
-    private fun showNotification(context: Context, userName: String) {
+    abstract fun getMainActivityClass(): Class<*>
+    abstract fun getNotificationIconResId(): Int
+
+    private fun showNotification(context: Context, userName: String, mainActivityClass: Class<*>) {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -32,7 +34,7 @@ class ReminderReceiver : BroadcastReceiver() {
             notificationManager.createNotificationChannel(channel)
         }
 
-        val notificationIntent = Intent(context, MainActivity::class.java).apply {
+        val notificationIntent = Intent(context, mainActivityClass).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
         val pendingIntent = PendingIntent.getActivity(
@@ -43,7 +45,7 @@ class ReminderReceiver : BroadcastReceiver() {
         )
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification)
+            .setSmallIcon(getNotificationIconResId())
             .setContentTitle("Пора на пару!")
             .setContentText("$userName, не пропусти любимую пару по мобильной разработке!")
             .setPriority(NotificationCompat.PRIORITY_HIGH)

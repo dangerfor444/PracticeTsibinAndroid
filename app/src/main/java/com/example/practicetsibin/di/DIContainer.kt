@@ -16,9 +16,12 @@ import com.example.practicetsibin.domain.usecase.GetPopularMoviesUseCase
 import com.example.practicetsibin.domain.usecase.IsFavoriteUseCase
 import com.example.practicetsibin.domain.usecase.RemoveFromFavoritesUseCase
 import com.example.practicetsibin.domain.usecase.SearchMoviesUseCase
-import com.example.practicetsibin.data.profile.ProfileRepository
-import com.example.practicetsibin.domain.usecase.ObserveProfileUseCase
-import com.example.practicetsibin.domain.usecase.UpdateProfileUseCase
+import com.example.practicetsibin.profile.data.ProfileRepository
+import com.example.practicetsibin.profile.domain.ObserveProfileUseCase
+import com.example.practicetsibin.profile.domain.UpdateProfileUseCase
+import com.example.practicetsibin.profile.presentation.EditProfileViewModel
+import com.example.practicetsibin.profile.presentation.ProfileViewModel
+import com.example.practicetsibin.notification.AppReminderReceiver
 
 object DIContainer {
     
@@ -50,4 +53,15 @@ object DIContainer {
 
     val observeProfileUseCase by lazy { ObserveProfileUseCase(profileRepository) }
     val updateProfileUseCase by lazy { UpdateProfileUseCase(profileRepository) }
+    
+    fun createProfileViewModel(): ProfileViewModel {
+        return ProfileViewModel(observeProfileUseCase)
+    }
+    
+    fun createEditProfileViewModel(): EditProfileViewModel {
+        return EditProfileViewModel(
+            updateProfileUseCase = updateProfileUseCase,
+            reminderReceiverClass = AppReminderReceiver::class.java
+        )
+    }
 }

@@ -1,4 +1,4 @@
-package com.example.practicetsibin.ui.screens
+package com.example.practicetsibin.profile.presentation
 
 import android.net.Uri
 import android.os.Build
@@ -17,16 +17,18 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.TimePickerState
-import androidx.compose.material3.TimePicker
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -38,14 +40,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImage
-import com.example.practicetsibin.feature.profile.EditProfileViewModel
-import com.example.practicetsibin.feature.profile.ProfileViewModel
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import coil.compose.AsyncImage
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -53,10 +51,10 @@ import java.util.Locale
 
 @Composable
 fun ProfileScreen(
+    viewModel: ProfileViewModel,
     onEdit: () -> Unit
 ) {
-    val vm: ProfileViewModel = viewModel()
-    val profile by vm.profile.collectAsState()
+    val profile by viewModel.profile.collectAsState()
 
     Scaffold(
         floatingActionButton = {
@@ -101,21 +99,20 @@ fun ProfileScreen(
 
 @Composable
 fun EditProfileScreen(
+    editViewModel: EditProfileViewModel,
+    profileViewModel: ProfileViewModel,
     onDone: () -> Unit,
     onBack: () -> Unit
 ) {
-    val vm: EditProfileViewModel = viewModel()
-
-    val profileVm: ProfileViewModel = viewModel()
-    val current by profileVm.profile.collectAsState()
+    val current by profileViewModel.profile.collectAsState()
     LaunchedEffect(current) {
-        vm.loadCurrent(current)
+        editViewModel.loadCurrent(current)
     }
 
-    val fullName by vm.fullName.collectAsState()
-    val avatarUri by vm.avatarUri.collectAsState()
-    val reminderTime by vm.reminderTime.collectAsState()
-    val timeError by vm.timeError.collectAsState()
+    val fullName by editViewModel.fullName.collectAsState()
+    val avatarUri by editViewModel.avatarUri.collectAsState()
+    val reminderTime by editViewModel.reminderTime.collectAsState()
+    val timeError by editViewModel.timeError.collectAsState()
 
     val context = LocalContext.current
 
@@ -130,14 +127,14 @@ fun EditProfileScreen(
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri: Uri? ->
-        uri?.let { vm.setAvatar(it.toString()) }
+        uri?.let { editViewModel.setAvatar(it.toString()) }
     }
 
     val takePictureLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
         if (success) {
-            pendingCameraUri?.let { vm.setAvatar(it.toString()) }
+            pendingCameraUri?.let { editViewModel.setAvatar(it.toString()) }
         }
     }
 
@@ -206,7 +203,7 @@ fun EditProfileScreen(
 
             OutlinedTextField(
                 value = fullName,
-                onValueChange = vm::setFullName,
+                onValueChange = editViewModel::setFullName,
                 label = { Text("ФИО") },
                 modifier = Modifier
                     .padding(horizontal = 8.dp)
@@ -216,12 +213,12 @@ fun EditProfileScreen(
 
             OutlinedTextField(
                 value = reminderTime,
-                onValueChange = vm::setReminderTime,
+                onValueChange = editViewModel::setReminderTime,
                 label = { Text("Время любимой пары (HH:mm)") },
                 isError = timeError != null,
                 supportingText = timeError?.let { { Text(it) } },
                 trailingIcon = {
-                    androidx.compose.material3.IconButton(onClick = { showTimePicker = true }) {
+                    IconButton(onClick = { showTimePicker = true }) {
                         Icon(
                             imageVector = Icons.Default.Notifications,
                             contentDescription = "Выбрать время"
@@ -239,7 +236,7 @@ fun EditProfileScreen(
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                         notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
                     }
-                    vm.save(context, onDone)
+                    editViewModel.save(context, onDone)
                 },
                 enabled = timeError == null || reminderTime.isEmpty()
             ) {
@@ -266,7 +263,7 @@ fun EditProfileScreen(
         TimePickerDialog(
             onDismiss = { showTimePicker = false },
             onConfirm = { hour, minute ->
-                vm.setReminderTime(String.format("%02d:%02d", hour, minute))
+                editViewModel.setReminderTime(String.format("%02d:%02d", hour, minute))
                 showTimePicker = false
             }
         )
@@ -279,7 +276,7 @@ fun TimePickerDialog(
     onDismiss: () -> Unit,
     onConfirm: (Int, Int) -> Unit
 ) {
-    val timeState = androidx.compose.runtime.remember { TimePickerState(12, 0, true) }
+    val timeState = remember { TimePickerState(12, 0, true) }
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
@@ -301,6 +298,7 @@ fun TimePickerDialog(
 private fun createImageUri(context: android.content.Context): Uri {
     val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
     val imagesDir = File(context.cacheDir, "images").apply { mkdirs() }
-    val file = File(imagesDir, "IMG_${'$'}timeStamp.jpg")
+    val file = File(imagesDir, "IMG_$timeStamp.jpg")
     return FileProvider.getUriForFile(context, context.packageName + ".fileprovider", file)
 }
+

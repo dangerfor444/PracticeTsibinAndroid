@@ -1,7 +1,7 @@
-package com.example.practicetsibin.domain.usecase
+package com.example.practicetsibin.profile.domain
 
-import com.example.practicetsibin.data.profile.Profile
-import com.example.practicetsibin.data.profile.ProfileRepository
+import com.example.practicetsibin.profile.data.Profile
+import com.example.practicetsibin.profile.data.ProfileRepository
 import kotlinx.coroutines.flow.Flow
 
 class ObserveProfileUseCase(private val repository: ProfileRepository) {
@@ -13,3 +13,4 @@ class UpdateProfileUseCase(private val repository: ProfileRepository) {
         repository.updateProfile(profile)
     }
 }
+

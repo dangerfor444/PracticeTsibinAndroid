@@ -23,8 +23,8 @@ import com.example.practicetsibin.ui.screens.FilterSettingsScreen
 import com.example.practicetsibin.ui.screens.MovieDetailsScreen
 import com.example.practicetsibin.ui.screens.MovieListScreen
 import com.example.practicetsibin.ui.screens.PlaceholderScreen
-import com.example.practicetsibin.ui.screens.ProfileScreen
-import com.example.practicetsibin.ui.screens.EditProfileScreen
+import com.example.practicetsibin.profile.presentation.ProfileScreen
+import com.example.practicetsibin.profile.presentation.EditProfileScreen
 
 @Composable
 fun MainScreen() {
@@ -85,10 +85,18 @@ fun MainScreen() {
                 )
             }
             composable(Routes.PROFILE) {
-                ProfileScreen(onEdit = { navController.navigate(Routes.EDIT_PROFILE) })
+                val profileViewModel = DIContainer.createProfileViewModel()
+                ProfileScreen(
+                    viewModel = profileViewModel,
+                    onEdit = { navController.navigate(Routes.EDIT_PROFILE) }
+                )
             }
             composable(Routes.EDIT_PROFILE) {
+                val profileViewModel = DIContainer.createProfileViewModel()
+                val editProfileViewModel = DIContainer.createEditProfileViewModel()
                 EditProfileScreen(
+                    editViewModel = editProfileViewModel,
+                    profileViewModel = profileViewModel,
                     onDone = { navController.navigateUp() },
                     onBack = { navController.navigateUp() }
                 )

@@ -1,4 +1,4 @@
-package com.example.practicetsibin.notification
+package com.example.practicetsibin.profile.notification
 
 import android.app.AlarmManager
 import android.app.PendingIntent
@@ -9,10 +9,16 @@ import java.util.Calendar
 
 object AlarmScheduler {
 
-    fun scheduleReminder(context: Context, hourOfDay: Int, minute: Int, userName: String) {
+    fun scheduleReminder(
+        context: Context,
+        hourOfDay: Int,
+        minute: Int,
+        userName: String,
+        receiverClass: Class<*>
+    ) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-        val intent = Intent(context, ReminderReceiver::class.java).apply {
+        val intent = Intent(context, receiverClass).apply {
             putExtra(ReminderReceiver.EXTRA_USER_NAME, userName)
         }
 
@@ -51,9 +57,9 @@ object AlarmScheduler {
         }
     }
 
-    fun cancelReminder(context: Context) {
+    fun cancelReminder(context: Context, receiverClass: Class<*>) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent = Intent(context, ReminderReceiver::class.java)
+        val intent = Intent(context, receiverClass)
         val pendingIntent = PendingIntent.getBroadcast(
             context,
             REQUEST_CODE,
