@@ -16,7 +16,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.TimePickerState
+import androidx.compose.material3.TimePicker
 import androidx.compose.material3.Button
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -110,11 +114,18 @@ fun EditProfileScreen(
 
     val fullName by vm.fullName.collectAsState()
     val avatarUri by vm.avatarUri.collectAsState()
+    val reminderTime by vm.reminderTime.collectAsState()
+    val timeError by vm.timeError.collectAsState()
 
     val context = LocalContext.current
 
     var showPickerDialog by remember { mutableStateOf(false) }
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+    var showTimePicker by remember { mutableStateOf(false) }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { _ -> }
 
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -196,14 +207,42 @@ fun EditProfileScreen(
             OutlinedTextField(
                 value = fullName,
                 onValueChange = vm::setFullName,
-                label = { Text("Name") },
+                label = { Text("ФИО") },
+                modifier = Modifier
+                    .padding(horizontal = 8.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = reminderTime,
+                onValueChange = vm::setReminderTime,
+                label = { Text("Время любимой пары (HH:mm)") },
+                isError = timeError != null,
+                supportingText = timeError?.let { { Text(it) } },
+                trailingIcon = {
+                    androidx.compose.material3.IconButton(onClick = { showTimePicker = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Notifications,
+                            contentDescription = "Выбрать время"
+                        )
+                    }
+                },
                 modifier = Modifier
                     .padding(horizontal = 8.dp)
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Button(onClick = { vm.save(onDone) }) {
+            Button(
+                onClick = {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                    vm.save(context, onDone)
+                },
+                enabled = timeError == null || reminderTime.isEmpty()
+            ) {
                 Text("Готово")
             }
         }
@@ -222,6 +261,41 @@ fun EditProfileScreen(
             text = { Text("Выберите источник изображения") }
         )
     }
+
+    if (showTimePicker) {
+        TimePickerDialog(
+            onDismiss = { showTimePicker = false },
+            onConfirm = { hour, minute ->
+                vm.setReminderTime(String.format("%02d:%02d", hour, minute))
+                showTimePicker = false
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TimePickerDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (Int, Int) -> Unit
+) {
+    val timeState = androidx.compose.runtime.remember { TimePickerState(12, 0, true) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            Button(onClick = { onConfirm(timeState.hour, timeState.minute) }) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            Button(onClick = onDismiss) {
+                Text("Отмена")
+            }
+        },
+        text = {
+            TimePicker(state = timeState)
+        }
+    )
 }
 
 private fun createImageUri(context: android.content.Context): Uri {

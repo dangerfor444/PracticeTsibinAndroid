@@ -15,11 +15,13 @@ class ProfileRepository(private val context: Context) {
 
     private val fullNameKey = stringPreferencesKey("full_name")
     private val avatarUriKey = stringPreferencesKey("avatar_uri")
+    private val reminderTimeKey = stringPreferencesKey("reminder_time")
 
     val profile: Flow<Profile> = context.profileDataStore.data.map { prefs ->
         Profile(
             fullName = prefs[fullNameKey] ?: "",
-            avatarUri = prefs[avatarUriKey] ?: ""
+            avatarUri = prefs[avatarUriKey] ?: "",
+            reminderTime = prefs[reminderTimeKey] ?: ""
         )
     }
 
@@ -27,6 +29,7 @@ class ProfileRepository(private val context: Context) {
         context.profileDataStore.edit { prefs ->
             prefs[fullNameKey] = profile.fullName
             prefs[avatarUriKey] = profile.avatarUri
+            prefs[reminderTimeKey] = profile.reminderTime
         }
     }
 

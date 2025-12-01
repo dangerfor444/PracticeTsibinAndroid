@@ -1,9 +1,11 @@
 package com.example.practicetsibin.feature.profile
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.practicetsibin.data.profile.Profile
 import com.example.practicetsibin.di.DIContainer
+import com.example.practicetsibin.notification.AlarmScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,6 +31,12 @@ class EditProfileViewModel : ViewModel() {
     private val _avatarUri = MutableStateFlow("")
     val avatarUri: StateFlow<String> = _avatarUri.asStateFlow()
 
+    private val _reminderTime = MutableStateFlow("")
+    val reminderTime: StateFlow<String> = _reminderTime.asStateFlow()
+
+    private val _timeError = MutableStateFlow<String?>(null)
+    val timeError: StateFlow<String?> = _timeError.asStateFlow()
+
     fun setFullName(value: String) {
         _fullName.value = value
     }
@@ -37,16 +45,45 @@ class EditProfileViewModel : ViewModel() {
         _avatarUri.value = uri
     }
 
+    fun setReminderTime(value: String) {
+        _reminderTime.value = value
+        validateTime(value)
+    }
+
+    private fun validateTime(time: String) {
+        _timeError.value = when {
+            time.isEmpty() -> null
+            !time.matches(Regex("^([01]?[0-9]|2[0-3]):[0-5][0-9]$")) -> "Неверный формат времени (HH:mm)"
+            else -> null
+        }
+    }
+
     fun loadCurrent(profile: Profile) {
         _fullName.value = profile.fullName
         _avatarUri.value = profile.avatarUri
+        _reminderTime.value = profile.reminderTime
     }
 
-    fun save(onDone: () -> Unit) {
+    fun save(context: Context, onDone: () -> Unit) {
+        validateTime(_reminderTime.value)
+        if (_timeError.value != null && _reminderTime.value.isNotEmpty()) {
+            return
+        }
         viewModelScope.launch {
-            DIContainer.updateProfileUseCase(
-                Profile(fullName = _fullName.value, avatarUri = _avatarUri.value)
+            val profile = Profile(
+                fullName = _fullName.value,
+                avatarUri = _avatarUri.value,
+                reminderTime = _reminderTime.value
             )
+            DIContainer.updateProfileUseCase(profile)
+
+            if (_reminderTime.value.isNotEmpty()) {
+                val timeParts = _reminderTime.value.split(":")
+                val hour = timeParts[0].toInt()
+                val minute = timeParts[1].toInt()
+                AlarmScheduler.scheduleReminder(context, hour, minute, _fullName.value)
+            }
+
             onDone()
         }
     }
